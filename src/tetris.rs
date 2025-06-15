@@ -1,6 +1,7 @@
 // src/tetris.rs
 use bevy::prelude::*;
 use rand::Rng;
+use std::time::Duration;
 
 pub const FIELD_WIDTH: usize = 12;
 pub const FIELD_HEIGHT: usize = 18;
@@ -24,11 +25,11 @@ pub const TETROMINO_SHAPES: [&str; 7] = [
 pub fn rotate(px: i32, py: i32, r: i32) -> usize {
     let r_mod_4 = r % 4;
     let index = match r_mod_4 {
-        0 => py * 4 + px,       // 0 degrees
+        0 => py * 4 + px,        // 0 degrees
         1 => 12 + py - (px * 4), // 90 degrees
         2 => 15 - (py * 4) - px, // 180 degrees
         3 => 3 - py + (px * 4),  // 270 degrees
-        _ => unreachable!(), // Should not happen due to modulo 4
+        _ => unreachable!(),     // Should not happen due to modulo 4
     };
     index as usize
 }
@@ -80,11 +81,18 @@ impl GameField {
                     let field_x = piece.x + px_local;
                     let field_y = piece.y + py_local;
 
-                    if field_x >= 0 && field_x < FIELD_WIDTH as i32 &&
-                       field_y >= 0 && field_y < FIELD_HEIGHT as i32 {
+                    if field_x >= 0
+                        && field_x < FIELD_WIDTH as i32
+                        && field_y >= 0
+                        && field_y < FIELD_HEIGHT as i32
+                    {
                         // Add 1 because shape_index can be 0, and 0 is empty.
                         // Values 1-7 for pieces, 9 for border.
-                        self.set_block(field_x as usize, field_y as usize, (piece.shape_index + 1) as u8);
+                        self.set_block(
+                            field_x as usize,
+                            field_y as usize,
+                            (piece.shape_index + 1) as u8,
+                        );
                     }
                 }
             }
@@ -98,10 +106,13 @@ impl GameField {
         // FIELD_HEIGHT - 1 is the border.
         let mut write_row = FIELD_HEIGHT - 2;
 
-        for read_row in (0..FIELD_HEIGHT - 1).rev() { // Iterate from bottom playable up to top
+        for read_row in (0..FIELD_HEIGHT - 1).rev() {
+            // Iterate from bottom playable up to top
             let mut line_is_full = true;
-            for x_check in 1..(FIELD_WIDTH - 1) { // Check within playable area (excluding side borders)
-                if self.get_block(x_check, read_row) == 0 { // If any cell is empty
+            for x_check in 1..(FIELD_WIDTH - 1) {
+                // Check within playable area (excluding side borders)
+                if self.get_block(x_check, read_row) == 0 {
+                    // If any cell is empty
                     line_is_full = false;
                     break;
                 }
@@ -124,7 +135,7 @@ impl GameField {
                 // if we are at the very top. The loop for read_row starts at 0,
                 // so write_row must be protected if it's already 0 and we try to decrement.
                 if write_row > 0 {
-                   write_row -= 1; // Move to the next row upwards to write to.
+                    write_row -= 1; // Move to the next row upwards to write to.
                 } else if write_row == 0 && read_row != 0 {
                     // This case means the top row was written to, but we are still reading lines from above.
                     // This shouldn't happen if read_row is always >= write_row after the first clear.
@@ -155,14 +166,19 @@ impl GameField {
         // would have been copied. So, all rows from 0 up to this 'write_row' (inclusive, if it's valid)
         // are now empty because their content was shifted down or they were part of cleared lines.
         for y_fill_top in 0..=write_row {
-             if y_fill_top >= FIELD_HEIGHT -1 { continue; } // Should not happen if write_row logic is correct
+            if y_fill_top >= FIELD_HEIGHT - 1 {
+                continue;
+            } // Should not happen if write_row logic is correct
             for x_fill_top in 1..(FIELD_WIDTH - 1) {
                 self.set_block(x_fill_top, y_fill_top, 0);
             }
         }
 
         if actual_lines_cleared_this_call > 0 {
-            println!("Internal: Lines cleared this call: {}", actual_lines_cleared_this_call);
+            println!(
+                "Internal: Lines cleared this call: {}",
+                actual_lines_cleared_this_call
+            );
         }
         actual_lines_cleared_this_call
     }
@@ -182,7 +198,7 @@ impl CurrentPiece {
             shape_index,
             rotation: 0,
             x: (FIELD_WIDTH / 2) as i32 - 2, // Start roughly in the middle
-            y: 0, // Start at the top
+            y: 0,                            // Start at the top
         }
     }
 }
@@ -210,7 +226,8 @@ impl GameTimer {
     // Optional: Method to change speed later
     pub fn set_fall_interval(&mut self, seconds: f32) {
         self.current_fall_interval_seconds = seconds;
-        self.fall_timer.set_duration(bevy::utils::Duration::from_secs_f32(seconds));
+        self.fall_timer
+            .set_duration(Duration::from_secs_f32(seconds));
         self.fall_timer.reset();
     }
 }
@@ -234,8 +251,10 @@ pub fn does_piece_fit(
     pos_x: i32, // Target X position of the piece's 4x4 grid top-left
     pos_y: i32, // Target Y position of the piece's 4x4 grid top-left
 ) -> bool {
-    for py_local in 0..4 { // py_local is py within the 4x4 piece grid
-        for px_local in 0..4 { // px_local is px within the 4x4 piece grid
+    for py_local in 0..4 {
+        // py_local is py within the 4x4 piece grid
+        for px_local in 0..4 {
+            // px_local is px within the 4x4 piece grid
             let piece_index = rotate(px_local, py_local, rotation);
 
             if TETROMINO_SHAPES[shape_index].chars().nth(piece_index) == Some('X') {
@@ -244,8 +263,11 @@ pub fn does_piece_fit(
                 let field_y = pos_y + py_local;
 
                 // If an 'X' block is trying to go out of the defined playfield boundaries, it's a fail.
-                if field_x < 0 || field_x >= FIELD_WIDTH as i32 ||
-                   field_y < 0 || field_y >= FIELD_HEIGHT as i32 {
+                if field_x < 0
+                    || field_x >= FIELD_WIDTH as i32
+                    || field_y < 0
+                    || field_y >= FIELD_HEIGHT as i32
+                {
                     return false; // Piece block is out of bounds
                 }
 
@@ -320,11 +342,14 @@ mod tests {
     #[test]
     fn test_does_piece_fit_empty_field_clear_center() {
         let field = GameField::new(); // Borders are set, middle is empty
-        // Try to place 'I' tetromino (index 0) at y=0, x should allow it if centered
-        // I-shape: "..X...X...X...X." (Xs at local x=2 for y=0,1,2,3)
-        // Centering: FIELD_WIDTH / 2 - 2 (for the 4x4 grid)
+                                      // Try to place 'I' tetromino (index 0) at y=0, x should allow it if centered
+                                      // I-shape: "..X...X...X...X." (Xs at local x=2 for y=0,1,2,3)
+                                      // Centering: FIELD_WIDTH / 2 - 2 (for the 4x4 grid)
         let pos_x = (FIELD_WIDTH / 2) as i32 - 2;
-        assert!(does_piece_fit(&field, 0, 0, pos_x, 0), "I-shape should fit in empty field center");
+        assert!(
+            does_piece_fit(&field, 0, 0, pos_x, 0),
+            "I-shape should fit in empty field center"
+        );
     }
 
     #[test]
@@ -332,7 +357,10 @@ mod tests {
         let field = GameField::new();
         // I-shape (index 0) has its first 'X' at local px_local=2.
         // If piece pos_x = -2, then field_x for this block = -2 + 2 = 0, which is a border.
-        assert!(!does_piece_fit(&field, 0, 0, -2, 0), "Should collide with left border (block at field x=0)");
+        assert!(
+            !does_piece_fit(&field, 0, 0, -2, 0),
+            "Should collide with left border (block at field x=0)"
+        );
     }
 
     #[test]
@@ -340,7 +368,10 @@ mod tests {
         let field = GameField::new();
         // I-shape (index 0), block at px_local=2.
         // If piece pos_x = -3, then field_x for this block = -3 + 2 = -1, which is out of bounds.
-        assert!(!does_piece_fit(&field, 0, 0, -3, 0), "Should be false if 'X' block is out of bounds left");
+        assert!(
+            !does_piece_fit(&field, 0, 0, -3, 0),
+            "Should be false if 'X' block is out of bounds left"
+        );
     }
 
     #[test]
@@ -348,7 +379,10 @@ mod tests {
         let field = GameField::new();
         // I-shape (index 0) has its last 'X' at local py_local=3 (and px_local=2).
         // If piece pos_y = FIELD_HEIGHT as i32 - 4, this block's field_y = (FIELD_HEIGHT-4)+3 = FIELD_HEIGHT-1 (border).
-        assert!(!does_piece_fit(&field, 0, 0, 5, (FIELD_HEIGHT - 4) as i32), "Should collide with bottom border");
+        assert!(
+            !does_piece_fit(&field, 0, 0, 5, (FIELD_HEIGHT - 4) as i32),
+            "Should collide with bottom border"
+        );
     }
 
     #[test]
@@ -356,16 +390,22 @@ mod tests {
         let field = GameField::new();
         // I-shape (index 0), block at py_local=3.
         // If piece pos_y = FIELD_HEIGHT as i32 - 3, this block's field_y = (FIELD_HEIGHT-3)+3 = FIELD_HEIGHT (out of bounds).
-        assert!(!does_piece_fit(&field, 0, 0, 5, (FIELD_HEIGHT - 3) as i32), "Should be false if 'X' block is out of bounds bottom");
+        assert!(
+            !does_piece_fit(&field, 0, 0, 5, (FIELD_HEIGHT - 3) as i32),
+            "Should be false if 'X' block is out of bounds bottom"
+        );
     }
 
     #[test]
     fn test_does_piece_fit_collision_with_existing_block() {
         let mut field = GameField::new();
         field.set_block(5, 2, 1); // Place an existing block (value 1)
-        // 'I' tetromino (index 0) has a block at its local (px_local=2, py_local=1).
-        // If piece is at pos_x=3, pos_y=1, its block at (2,1) will target field coordinates (3+2, 1+1) = (5,2).
-        assert!(!does_piece_fit(&field, 0, 0, 3, 1), "Should collide with existing block at (5,2)");
+                                  // 'I' tetromino (index 0) has a block at its local (px_local=2, py_local=1).
+                                  // If piece is at pos_x=3, pos_y=1, its block at (2,1) will target field coordinates (3+2, 1+1) = (5,2).
+        assert!(
+            !does_piece_fit(&field, 0, 0, 3, 1),
+            "Should collide with existing block at (5,2)"
+        );
     }
 
     #[test]
@@ -373,8 +413,14 @@ mod tests {
         // O-shape: ".....XX..XX....." (local x=1,y=1; x=2,y=1; x=1,y=2; x=2,y=2)
         let field = GameField::new();
         // Place O-shape (index 2) at (0,0). Its leftmost blocks (px_local=1) will be at field_x=1. Valid.
-        assert!(does_piece_fit(&field, 2, 0, 0, 0), "O-shape at (0,0) should fit if its blocks are not on border index 0");
+        assert!(
+            does_piece_fit(&field, 2, 0, 0, 0),
+            "O-shape at (0,0) should fit if its blocks are not on border index 0"
+        );
         // Place O-shape at (-1,0). Its leftmost blocks (px_local=1) will be at field_x=0 (border). Collision.
-        assert!(!does_piece_fit(&field, 2, 0, -1, 0), "O-shape at (-1,0) should collide with left border");
+        assert!(
+            !does_piece_fit(&field, 2, 0, -1, 0),
+            "O-shape at (-1,0) should collide with left border"
+        );
     }
 }

@@ -3,6 +3,10 @@ name = "bevy-tetirs"
 version = "0.1.0"
 edition = "2021"
 
+
 [dependencies]
-bevy = { version = "0.16.0", features = ["wayland"] }
+bevy = "0.16.0"
 rand = "0.8.5"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+bevy = { version = "0.16.0", features = ["wayland"] }

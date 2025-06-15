@@ -190,13 +190,13 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .init_state::<GameState>()
         .add_systems(Startup, (setup_game, spawn_new_piece).chain())
-        .add_systems(
-            Update,
-            (player_input_system, auto_fall_and_lock_system)
-                .chain()
-                .run_if(in_state(GameState::Playing)),
-        )
-        .add_systems(OnEnter(GameState::GameOver), setup_game_over_screen)
-        .add_systems(OnExit(GameState::GameOver), cleanup_game_over_screen)
+        // .add_systems(
+        //     Update,
+        //     (player_input_system, auto_fall_and_lock_system)
+        //         .chain()
+        //         .run_if(in_state(GameState::Playing)),
+        // )
+        // .add_systems(OnEnter(GameState::GameOver), setup_game_over_screen)
+        // .add_systems(OnExit(GameState::GameOver), cleanup_game_over_screen)
         .run();
 }

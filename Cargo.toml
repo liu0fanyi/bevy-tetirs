@@ -1,7 +1,8 @@
 [package]
 name = "bevy-tetirs"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
 
 [dependencies]
-bevy = "0.16.1"
+bevy = "0.12.0" # Downgraded Bevy further
+rand = "0.8.5"

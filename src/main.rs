@@ -6,7 +6,8 @@ use bevy::prelude::*; // Required for SystemParam
                       // use bevy::prelude::NextState; // Included in prelude, but explicit for clarity if preferred
 use rand::Rng;
 use tetris::{
-    does_piece_fit, CurrentPiece, GameField, GameState, GameTimer, Score, TETROMINO_SHAPES,
+    does_piece_fit, spawn_tetromino, CurrentPiece, GameField, GameState, GameTimer, Score,
+    TETROMINO_SHAPES,
 };
 
 // This system spawns the very first piece or can be called if CurrentPiece is None.
@@ -45,19 +46,27 @@ fn setup_game(
     commands.insert_resource(GameField::new());
     commands.insert_resource(Score::default());
     commands.insert_resource(GameTimer::new(20));
+    let sprite = Sprite::from_atlas_image(
+        texture,
+        TextureAtlas {
+            layout: texture_atlas_layout,
+            index: 0,
+        },
+    );
 
-    commands.spawn((
-        Sprite::from_atlas_image(
-            texture,
-            TextureAtlas {
-                layout: texture_atlas_layout,
-                index: 0,
-            },
-        ),
-        Transform::from_scale(Vec3::splat(1.0)),
-        // animation_indices,
-        // AnimationTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
-    ));
+    // commands.spawn((
+    //     Sprite::from_atlas_image(
+    //         texture,
+    //         TextureAtlas {
+    //             layout: texture_atlas_layout,
+    //             index: 0,
+    //         },
+    //     ),
+    //     Transform::from_scale(Vec3::splat(1.0)),
+    //     // animation_indices,
+    //     // AnimationTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
+    // ));
+    spawn_tetromino(commands, sprite);
 
     println!("Game setup complete (core resources).");
 }

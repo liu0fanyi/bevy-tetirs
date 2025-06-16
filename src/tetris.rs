@@ -45,6 +45,67 @@ pub fn rotate(px: i32, py: i32, r: i32) -> usize {
     index as usize
 }
 
+#[derive(Component)]
+pub struct Tetromino {
+    pub shape_type: usize, // 对应 TETROMINO_SHAPES 的索引
+    pub rotation: i32,     // 0-3 表示 0°, 90°, 180°, 270°
+    pub position: Vec2,    // 方块的左下角坐标（单位：格子数）
+}
+
+#[derive(Component)]
+pub struct Cell; // 标记单个小方块的实体
+
+pub fn get_cells(shape_type: usize, rotation: i32) -> Vec<Vec2> {
+    let shape_str = TETROMINO_SHAPES[shape_type];
+    let mut cells = Vec::new();
+    for (i, c) in shape_str.chars().enumerate() {
+        if c == 'X' {
+            let px = (i % 4) as i32;
+            let py = (i / 4) as i32;
+            let index = rotate(px, py, rotation);
+            cells.push(Vec2::new((index % 4) as f32, (index / 4) as f32));
+        }
+    }
+    cells
+}
+
+pub fn spawn_tetromino(mut commands: Commands, sprite: Sprite) {
+    let shape_type = 0;
+    let rotation = 0;
+    // let position = Vec2::new(5.0, 20.0);
+    let position = Vec2::new(0.0, 0.0);
+
+    let tetromino = Tetromino {
+        shape_type, // I 形
+        rotation,   // 0°
+        position,   // 棋盘坐标
+    };
+
+    // 父实体（逻辑上的整体方块）
+    commands
+        .spawn((
+            Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
+            Visibility::default(),
+            tetromino,
+        ))
+        .with_children(|spawner| {
+            // 生成每个小方块
+            // let parent = spawner.target_entity();
+            for cell_pos in get_cells(shape_type, rotation) {
+                spawner.spawn((
+                    sprite.clone(),
+                    // Sprite {
+                    //     // color: Color::CYAN,
+                    //     custom_size: Some(Vec2::splat(1.0)), // 小方块大小
+                    //     ..default()
+                    // },
+                    Transform::from_translation(cell_pos.extend(0.0)),
+                    Cell,
+                ));
+            }
+        });
+}
+
 // Represents the game field.
 // `Vec<u8>` stores the state of each cell.
 // 0 means empty, other numbers might represent different Tetromino block types or colors.

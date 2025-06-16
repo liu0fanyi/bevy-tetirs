@@ -8,6 +8,17 @@ pub const FIELD_HEIGHT: usize = 18;
 pub const SCREEN_WIDTH: usize = 80; // Will likely be replaced by Bevy window config
 pub const SCREEN_HEIGHT: usize = 30; // Will likely be replaced by Bevy window config
 
+// 针对每个shape，在..们更新之后需要同步更新
+// 不过事实上一次只操作一个
+// 嗯，那可能一个resource就行了
+// #[derive(Component)]
+// struct Shape {
+//     shape_index: usize,
+//     pub rotation: i32,
+//     pub x: i32, // Position on the game field (top-left of the 4x4 grid)
+//     pub y: i32,
+// }
+
 // Represents the 7 Tetromino shapes using a 4x4 grid.
 // '.' means empty, 'X' means a block.
 pub const TETROMINO_SHAPES: [&str; 7] = [

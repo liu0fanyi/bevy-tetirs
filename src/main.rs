@@ -30,8 +30,16 @@ fn spawn_new_piece(mut commands: Commands, current_piece_res: Option<ResMut<Curr
     }
 }
 
-fn setup_game(mut commands: Commands) {
+fn setup_game(
+    mut commands: Commands,
+    asset_server: Res<AssetServer>,
+    mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
+) {
+    let texture = asset_server.load::<Image>("textures/gabe-idle-run.png");
+    let layout = TextureAtlasLayout::from_grid(UVec2::splat(24), 7, 1, None, None);
+
     commands.spawn(Camera2d::default());
+
     commands.insert_resource(GameField::new());
     commands.insert_resource(Score::default());
     commands.insert_resource(GameTimer::new(20));
@@ -98,29 +106,30 @@ fn player_input_system(
     }
 }
 
-#[derive(SystemParam)]
-pub struct InGamePieceSpawner<'w> {
-    current_piece_res: ResMut<'w, CurrentPiece>,
-}
+// #[derive(SystemParam)]
+// pub struct InGamePieceSpawner<'w> {
+//     current_piece_res: ResMut<'w, CurrentPiece>,
+// }
 
-impl<'w> InGamePieceSpawner<'w> {
-    pub fn respawn_current_piece(&mut self) {
-        let mut rng = rand::thread_rng();
-        let new_shape_index = rng.gen_range(0..TETROMINO_SHAPES.len());
-        let new_piece_state = CurrentPiece::new(new_shape_index);
+// impl<'w> InGamePieceSpawner<'w> {
+//     pub fn respawn_current_piece(&mut self) {
+//         let mut rng = rand::thread_rng();
+//         let new_shape_index = rng.gen_range(0..TETROMINO_SHAPES.len());
+//         let new_piece_state = CurrentPiece::new(new_shape_index);
 
-        *self.current_piece_res = new_piece_state;
-        println!("Respawned current piece: Index {}", new_shape_index);
-    }
-}
+//         *self.current_piece_res = new_piece_state;
+//         println!("Respawned current piece: Index {}", new_shape_index);
+//     }
+// }
 
 fn auto_fall_and_lock_system(
+    mut commands: Commands,
     time: Res<Time>,
     mut game_timer: ResMut<GameTimer>,
     current_piece_opt: Option<ResMut<CurrentPiece>>,
     mut game_field: ResMut<GameField>,
     mut score: ResMut<Score>,
-    mut spawner: InGamePieceSpawner,
+    // mut spawner: InGamePieceSpawner,
     mut next_game_state: ResMut<NextState<GameState>>, // Added for state transition
 ) {
     if let Some(mut piece) = current_piece_opt {
@@ -158,18 +167,25 @@ fn auto_fall_and_lock_system(
                     );
                 }
 
-                spawner.respawn_current_piece();
+                let mut rng = rand::thread_rng();
+                let new_shape_index = rng.gen_range(0..TETROMINO_SHAPES.len());
+                let new_piece_state = CurrentPiece::new(new_shape_index);
 
-                if !does_piece_fit(
-                    &game_field,
-                    spawner.current_piece_res.shape_index,
-                    spawner.current_piece_res.rotation,
-                    spawner.current_piece_res.x,
-                    spawner.current_piece_res.y,
-                ) {
-                    println!("GAME OVER: New piece does not fit. Transitioning to GameOver state.");
-                    next_game_state.set(GameState::GameOver); // Transition to GameOver
-                }
+                *self.current_piece_res = new_piece_state;
+                println!("Respawned current piece: Index {}", new_shape_index);
+
+                // spawner.respawn_current_piece();
+
+                // if !does_piece_fit(
+                //     &game_field,
+                //     spawner.current_piece_res.shape_index,
+                //     spawner.current_piece_res.rotation,
+                //     spawner.current_piece_res.x,
+                //     spawner.current_piece_res.y,
+                // ) {
+                //     println!("GAME OVER: New piece does not fit. Transitioning to GameOver state.");
+                //     next_game_state.set(GameState::GameOver); // Transition to GameOver
+                // }
             }
         }
     }
@@ -190,13 +206,13 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .init_state::<GameState>()
         .add_systems(Startup, (setup_game, spawn_new_piece).chain())
-        // .add_systems(
-        //     Update,
-        //     (player_input_system, auto_fall_and_lock_system)
-        //         .chain()
-        //         .run_if(in_state(GameState::Playing)),
-        // )
-        // .add_systems(OnEnter(GameState::GameOver), setup_game_over_screen)
-        // .add_systems(OnExit(GameState::GameOver), cleanup_game_over_screen)
+        .add_systems(
+            Update,
+            (player_input_system, auto_fall_and_lock_system)
+                .chain()
+                .run_if(in_state(GameState::Playing)),
+        )
+        .add_systems(OnEnter(GameState::GameOver), setup_game_over_screen)
+        .add_systems(OnExit(GameState::GameOver), cleanup_game_over_screen)
         .run();
 }

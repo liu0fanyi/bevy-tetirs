@@ -35,14 +35,30 @@ fn setup_game(
     asset_server: Res<AssetServer>,
     mut texture_atlas_layouts: ResMut<Assets<TextureAtlasLayout>>,
 ) {
-    let texture = asset_server.load::<Image>("textures/gabe-idle-run.png");
-    let layout = TextureAtlasLayout::from_grid(UVec2::splat(24), 7, 1, None, None);
+    // let texture = asset_server.load::<Image>("textures/gabe-idle-run.png");
+    let texture = asset_server.load::<Image>("textures/square-list.png");
+    let layout = TextureAtlasLayout::from_grid(UVec2::splat(32), 5, 1, None, None);
+    let texture_atlas_layout = texture_atlas_layouts.add(layout);
 
     commands.spawn(Camera2d::default());
 
     commands.insert_resource(GameField::new());
     commands.insert_resource(Score::default());
     commands.insert_resource(GameTimer::new(20));
+
+    commands.spawn((
+        Sprite::from_atlas_image(
+            texture,
+            TextureAtlas {
+                layout: texture_atlas_layout,
+                index: 0,
+            },
+        ),
+        Transform::from_scale(Vec3::splat(1.0)),
+        // animation_indices,
+        // AnimationTimer(Timer::from_seconds(0.1, TimerMode::Repeating)),
+    ));
+
     println!("Game setup complete (core resources).");
 }
 
@@ -167,12 +183,12 @@ fn auto_fall_and_lock_system(
                     );
                 }
 
-                let mut rng = rand::thread_rng();
-                let new_shape_index = rng.gen_range(0..TETROMINO_SHAPES.len());
-                let new_piece_state = CurrentPiece::new(new_shape_index);
+                // let mut rng = rand::thread_rng();
+                // let new_shape_index = rng.gen_range(0..TETROMINO_SHAPES.len());
+                // let new_piece_state = CurrentPiece::new(new_shape_index);
 
-                *self.current_piece_res = new_piece_state;
-                println!("Respawned current piece: Index {}", new_shape_index);
+                // *self.current_piece_res = new_piece_state;
+                // println!("Respawned current piece: Index {}", new_shape_index);
 
                 // spawner.respawn_current_piece();
 

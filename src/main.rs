@@ -6,8 +6,8 @@ use std::f32::consts::PI;
 use bevy::prelude::*;
 use rand::Rng;
 use tetris::{
-    does_piece_fit, spawn_tetromino, CurrentPiece, GameField, GameState, GameTimer, Score,
-    Tetromino, CELL_SIZE, FIELD_HEIGHT, FIELD_WIDTH, TETROMINO_SHAPES,
+    does_piece_fit, get_cells, spawn_tetromino, CurrentPiece, GameField, GameState, GameTimer,
+    Score, Tetromino, CELL_SIZE, FIELD_HEIGHT, FIELD_WIDTH, TETROMINO_SHAPES,
 };
 
 // This system spawns the very first piece or can be called if CurrentPiece is None.
@@ -132,7 +132,7 @@ fn player_input_system(
     current_piece_res: Option<ResMut<CurrentPiece>>,
     game_field: Res<GameField>,
     // mut tetromino: Query<(&mut Tetromino, &mut Transform, &Children)>,
-    mut tetromino: Query<(&mut Tetromino, &Children)>,
+    mut tetromino: Query<(Entity, &mut Tetromino, &Children)>,
     mut transform_q: Query<&mut Transform>,
 ) {
     if let Some(piece) = current_piece_res {
@@ -156,7 +156,9 @@ fn player_input_system(
         }
 
         let id = piece.id;
-        let (mut piece, mut transform, mut children) = tetromino.get_mut(id).unwrap();
+        let (parent, mut piece, mut children) = tetromino.get_mut(id).unwrap();
+
+        let mut transform = transform_q.get_mut(parent).unwrap();
 
         // 这里需要提前判断边界
         // 不然会因为u系列-1而越界噶嘣
@@ -197,7 +199,7 @@ fn player_input_system(
         }
         if intended_rotation_change {
             let new_rotation = (piece.rotation + 1) % 4;
-            const ROTATION: [f32; 4] = [0.0, PI / 2.0, PI, PI / 2.0 * 3.0];
+            // const ROTATION: [f32; 4] = [0.0, PI / 2.0, PI, PI / 2.0 * 3.0];
             if does_piece_fit(
                 &game_field,
                 piece.shape_type,
@@ -206,13 +208,19 @@ fn player_input_system(
                 piece.position.y as usize,
             ) {
                 piece.rotation = new_rotation;
+
+                let cells = get_cells(piece.shape_type, new_rotation);
                 // 不直接旋父节点了，既然字节点已经有旋转信息了
                 // 可以直接更新子节点相对于父节点的位置，就是麻烦点=_=
+                // 倒是对了，但嵌入了墙里
+                let mut i = 0;
                 for child in children {
-                    if let Ok(mut transform) = transform_q.get_mut(*child) {}
-                    // let rotation = rotate();
+                    if let Ok(mut transform) = transform_q.get_mut(*child) {
+                        transform.translation.x = (cells[i].x * CELL_SIZE as u32) as f32;
+                        transform.translation.y = (cells[i].y * CELL_SIZE as u32) as f32;
+                        i += 1;
+                    }
                 }
-                // transform.rotation = Quat::from_rotation_z(ROTATION[new_rotation]);
             }
         }
     }

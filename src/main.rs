@@ -6,8 +6,8 @@ use std::f32::consts::PI;
 use bevy::prelude::*;
 use rand::Rng;
 use tetris::{
-    does_piece_fit, get_cells, spawn_tetromino, CurrentPiece, GameField, GameState, GameTimer,
-    Score, Tetromino, CELL_SIZE, FIELD_HEIGHT, FIELD_WIDTH, TETROMINO_SHAPES,
+    does_piece_fit, does_piece_fit_a, get_cells, spawn_tetromino, CurrentPiece, GameField,
+    GameState, GameTimer, Score, Tetromino, CELL_SIZE, FIELD_HEIGHT, FIELD_WIDTH, TETROMINO_SHAPES,
 };
 
 // This system spawns the very first piece or can be called if CurrentPiece is None.
@@ -34,7 +34,15 @@ fn spawn_new_piece(
             index: 0,
         },
     );
-    let id = spawn_tetromino(&mut commands, sprite);
+
+    let sprite_root = Sprite::from_atlas_image(
+        texture_square.texture.clone(),
+        TextureAtlas {
+            layout: texture_square.texture_atlas_layout.clone(),
+            index: 1,
+        },
+    );
+    let id = spawn_tetromino(&mut commands, sprite, sprite_root);
     commands.insert_resource(CurrentPiece { id });
     println!(
         "Spawned piece (startup/manual, inserting new): Index {}",
@@ -66,7 +74,7 @@ fn setup_game(
                 (FIELD_HEIGHT as f32 * CELL_SIZE as f32) / 2.0 - CELL_SIZE as f32,
                 0.0,
             ),
-            rotation: Quat::from_rotation_z(PI),
+            // rotation: Quat::from_rotation_z(PI),
             ..default()
         },
     ));
@@ -200,7 +208,7 @@ fn player_input_system(
         if intended_rotation_change {
             let new_rotation = (piece.rotation + 1) % 4;
             // const ROTATION: [f32; 4] = [0.0, PI / 2.0, PI, PI / 2.0 * 3.0];
-            if does_piece_fit(
+            if does_piece_fit_a(
                 &game_field,
                 piece.shape_type,
                 new_rotation,
@@ -210,6 +218,7 @@ fn player_input_system(
                 piece.rotation = new_rotation;
 
                 let cells = get_cells(piece.shape_type, new_rotation);
+                println!("cells:{:?}", cells);
                 // 不直接旋父节点了，既然字节点已经有旋转信息了
                 // 可以直接更新子节点相对于父节点的位置，就是麻烦点=_=
                 // 倒是对了，但嵌入了墙里

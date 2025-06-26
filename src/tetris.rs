@@ -24,7 +24,15 @@ pub const CELL_SIZE: usize = 32;
 // '.' means empty, 'X' means a block.
 pub const TETROMINO_SHAPES: [&str; 7] = [
     "..X...X...X...X.", // I
+    // ..X.
+    // ..X.
+    // ..X.
+    // ..X.
     "..X..XX...X.....", // T
+    // ..X.
+    // .XX.
+    // ..X.
+    // ....
     ".....XX..XX.....", // O
     "..X..XX..X......", // L
     ".X...XX...X.....", // J
@@ -34,6 +42,7 @@ pub const TETROMINO_SHAPES: [&str; 7] = [
 
 // Function to rotate a point (px, py) in a 4x4 grid.
 // r is the rotation state (0, 1, 2, 3).
+// 这个是围绕左上角进行旋转的
 pub fn rotate(px: usize, py: usize, r: usize) -> usize {
     let r_mod_4 = r % 4;
     let index = match r_mod_4 {
@@ -67,20 +76,38 @@ impl Tetromino {
 pub struct Cell(UVec2); // 标记单个小方块的实体
 
 pub fn get_cells(shape_type: usize, rotation: usize) -> Vec<UVec2> {
-    let shape_str = TETROMINO_SHAPES[shape_type];
     let mut cells = Vec::new();
-    for (i, c) in shape_str.chars().enumerate() {
-        if c == 'X' {
-            let px = i % 4;
-            let py = i / 4;
-            let index = rotate(px, py, rotation);
-            cells.push(UVec2::new((index % 4) as u32, (index / 4) as u32));
+    for py_local in 0..4 {
+        // py_local is py within the 4x4 piece grid
+        for px_local in 0..4 {
+            // px_local is px within the 4x4 piece grid
+            let piece_index = rotate(px_local, py_local, rotation);
+
+            if TETROMINO_SHAPES[shape_type].chars().nth(piece_index) == Some('X') {
+                // This cell in the piece is a block. Check its position on the field.
+                // println!("field_x:{pos_x}, {px_local}-field_y:{pos_y}, {py_local}");
+                cells.push(UVec2::new(px_local as u32, py_local as u32));
+            }
         }
     }
     cells
 }
 
-pub fn spawn_tetromino(commands: &mut Commands, sprite: Sprite) -> Entity {
+// pub fn get_cells(shape_type: usize, rotation: usize) -> Vec<UVec2> {
+//     let shape_str = TETROMINO_SHAPES[shape_type];
+//     let mut cells = Vec::new();
+//     for (i, c) in shape_str.chars().enumerate() {
+//         if c == 'X' {
+//             let px = i % 4;
+//             let py = i / 4;
+//             let index = rotate(px, py, rotation);
+//             cells.push(UVec2::new((index % 4) as u32, (index / 4) as u32));
+//         }
+//     }
+//     cells
+// }
+
+pub fn spawn_tetromino(commands: &mut Commands, sprite: Sprite, sprite_root: Sprite) -> Entity {
     let shape_type = 1;
     let rotation = 0;
 
@@ -91,6 +118,7 @@ pub fn spawn_tetromino(commands: &mut Commands, sprite: Sprite) -> Entity {
         .spawn((
             Transform::from_translation(Vec3::new(0.0, 0.0, 0.0)),
             Visibility::default(),
+            sprite_root.clone(),
             tetromino,
         ))
         .with_children(|spawner| {
@@ -322,7 +350,44 @@ pub fn does_piece_fit(
                 let field_y = pos_y as usize + py_local;
 
                 // If an 'X' block is trying to go out of the defined playfield boundaries, it's a fail.
-                if field_x < 0 || field_x >= FIELD_WIDTH || field_y < 0 || field_y >= FIELD_HEIGHT {
+                if field_x <= 0 || field_x > FIELD_WIDTH || field_y <= 0 || field_y > FIELD_HEIGHT {
+                    println!("here false");
+                    return false; // Piece block is out of bounds
+                }
+
+                // Current cell is within field bounds. Check for collision with existing blocks.
+                // Note: Borders (value 9) are also considered occupied.
+                if field.get_block(field_x as usize, field_y as usize) != 0 {
+                    println!("here 2 false");
+                    return false; // Collision with an existing block or border
+                }
+            }
+        }
+    }
+    true // No collisions found, piece fits
+}
+
+pub fn does_piece_fit_a(
+    field: &GameField,
+    shape_index: usize,
+    rotation: usize,
+    pos_x: usize, // Target X position of the piece's 4x4 grid top-left
+    pos_y: usize, // Target Y position of the piece's 4x4 grid top-left
+) -> bool {
+    for py_local in 0..4 {
+        // py_local is py within the 4x4 piece grid
+        for px_local in 0..4 {
+            // px_local is px within the 4x4 piece grid
+            let piece_index = rotate(px_local, py_local, rotation);
+
+            if TETROMINO_SHAPES[shape_index].chars().nth(piece_index) == Some('X') {
+                // This cell in the piece is a block. Check its position on the field.
+                let field_x = pos_x as usize + px_local;
+                let field_y = pos_y as usize + py_local;
+                println!("pos_x:{pos_x}, px_local:{px_local}, field_x:{field_x}-pos_y:{pos_y}, py_local:{py_local}, field_y:{field_y}");
+
+                // If an 'X' block is trying to go out of the defined playfield boundaries, it's a fail.
+                if field_x <= 0 || field_x > FIELD_WIDTH || field_y <= 0 || field_y > FIELD_HEIGHT {
                     println!("here false");
                     return false; // Piece block is out of bounds
                 }
